@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 import { getEmbedding, queryEmbeddingSimilarity } from '@/utils/db';
+import { z } from 'zod';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   try {
@@ -38,26 +38,23 @@ Remember to:
 5. Keep responses casual and friendly, just like a real conversation`,
     };
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const result = streamText({
+      model: openai('gpt-4o-mini'),
       messages: [systemMessage, ...messages],
       temperature: 0,
     });
 
-    return NextResponse.json({ 
-      message: completion.choices[0].message.content,
-      context: similarContexts.map(ctx => ({ text: ctx.text, similarity: ctx.similarity }))
-    });
+    return result.toDataStreamResponse();
   } catch (error) {
     console.error('Error:', error);
     if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
+      return new Response(
+        JSON.stringify({ error: error.message }),
         { status: 500 }
       );
     }
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
+    return new Response(
+      JSON.stringify({ error: 'An unexpected error occurred' }),
       { status: 500 }
     );
   }
