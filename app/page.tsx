@@ -3,8 +3,10 @@
 import { useChat } from '@ai-sdk/react';
 import { useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { useUser, SignInButton, SignUpButton } from '@clerk/nextjs';
 
 export default function Chat() {
+  const { isSignedIn, user } = useUser();
   const { messages, input, handleInputChange, handleSubmit } = useChat({
     maxSteps: 5,
   });
@@ -15,6 +17,50 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
   useEffect(scrollToBottom, [messages]);
+
+  if (!isSignedIn) {
+    return (
+      <main className="relative min-h-screen w-full flex items-center justify-center">
+        <div className="fixed inset-0 w-full h-full -z-10">
+          <div className="relative w-full h-full">
+            <Image
+              src="/dhanush-bg.jpg"
+              alt="Dhanush Background"
+              fill
+              sizes="100vw"
+              style={{ 
+                objectFit: 'cover', 
+                objectPosition: 'center 30%',
+                transform: 'scale(1.5) translateY(10%)'
+              }}
+              priority
+              quality={100}
+            />
+            <div 
+              className="absolute inset-0 bg-gradient-to-b from-black/85 via-gray-900/90 to-gray-900/95 backdrop-blur-[1px]"
+              style={{ mixBlendMode: 'multiply' }}
+            ></div>
+          </div>
+        </div>
+        <div className="text-center p-8 bg-gray-800/40 backdrop-blur-sm rounded-lg shadow-lg border border-gray-700/30">
+          <h1 className="text-2xl font-bold text-white mb-4">Welcome to Chat with Dhanush</h1>
+          <p className="text-gray-300 mb-6">Please sign in to start chatting</p>
+          <div className="flex gap-4 justify-center">
+            <SignInButton mode="modal">
+              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Sign In
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                Sign Up
+              </button>
+            </SignUpButton>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative min-h-screen w-full">
