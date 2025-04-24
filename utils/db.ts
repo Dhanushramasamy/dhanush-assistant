@@ -105,17 +105,34 @@ export async function queryBothTables(
   limit: number = 10,
   category?: string
 ) {
-  // Temporarily only search personal data table for testing
   const query = `
-    SELECT 
-      id,
-      category,
-      chunk_text as text,
-      1 - (embedding <=> $1::vector) as similarity,
-      'personal' as data_type
-    FROM dhanush_personal_data
-    WHERE embedding IS NOT NULL
-    ${category ? 'AND category = $2::varchar' : ''}
+    WITH combined_results AS (
+      (
+        SELECT 
+          id,
+          category,
+          chunk_text as text,
+          1 - (embedding <=> $1::vector) as similarity,
+          'personal' as data_type
+        FROM dhanush_personal_data
+        WHERE embedding IS NOT NULL
+        ${category ? 'AND category = $2::varchar' : ''}
+      )
+      UNION ALL
+      (
+        SELECT 
+          id,
+          category,
+          chunk_text as text,
+          1 - (embedding <=> $1::vector) as similarity,
+          'general' as data_type
+        FROM dhanush_general_data
+        WHERE embedding IS NOT NULL
+        ${category ? 'AND category = $2::varchar' : ''}
+      )
+    )
+    SELECT *
+    FROM combined_results
     ORDER BY similarity DESC
     LIMIT ${category ? '$3' : '$2'}::integer;
   `;
@@ -132,7 +149,7 @@ export async function queryBothTables(
     const result = await pool.query(query, params);
     return result.rows;
   } catch (error) {
-    console.error('Error querying personal data table:', error);
-    throw new Error('Failed to query similar documents from personal data table');
+    console.error('Error querying tables:', error);
+    throw new Error('Failed to query similar documents from tables');
   }
 } 
