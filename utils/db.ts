@@ -27,11 +27,11 @@ export async function queryEmbeddingSimilarity(
       id,
       category,
       chunk_text as text,
-      1 - (embedding <=> $1::embedding) as similarity
+      1 - (embedding <=> $1::vector) as similarity
     FROM ${tableName}
     WHERE embedding IS NOT NULL
     ${category ? 'AND category = $3' : ''}
-    ORDER BY embedding <=> $1::embedding
+    ORDER BY embedding <=> $1::vector
     LIMIT $2;
   `;
 
