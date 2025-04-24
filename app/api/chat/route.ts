@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import { getEmbedding, queryEmbeddingSimilarity } from '@/utils/db';
+import { getEmbedding, queryBothTables } from '@/utils/db';
 import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
@@ -14,11 +14,11 @@ export async function POST(req: Request) {
     // Get embedding for the user's question
     const questionEmbedding = await getEmbedding(userQuestion);
 
-    // Get similar contexts from the database
-    const similarContexts = await queryEmbeddingSimilarity(questionEmbedding);
+    // Get similar contexts from both tables
+    const similarContexts = await queryBothTables(questionEmbedding);
 
     // Prepare context for the LLM
-    const context = similarContexts.map(ctx => ctx.text).join('\n\n');
+    const context = similarContexts.map(ctx => `[${ctx.data_type}] ${ctx.category}: ${ctx.text}`).join('\n\n');
 
     // Create system message with context
     const systemMessage = {

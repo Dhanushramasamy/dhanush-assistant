@@ -14,21 +14,37 @@ pool.query('SELECT NOW()').catch(err => {
   console.error('Database connection error:', err);
 });
 
-export async function queryEmbeddingSimilarity(embedding: number[], limit: number = 10) {
+type TableName = 'dhanush_personal_data' | 'dhanush_general_data';
+
+export async function queryEmbeddingSimilarity(
+  embedding: number[], 
+  tableName: TableName,
+  limit: number = 10,
+  category?: string
+) {
   const query = `
-    SELECT text, 1 - (embedding <=> $1::vector) as similarity
-    FROM data_dhanush_knowledge
+    SELECT 
+      id,
+      category,
+      chunk_text as text,
+      1 - (embedding <=> $1::embedding) as similarity
+    FROM ${tableName}
     WHERE embedding IS NOT NULL
-    ORDER BY embedding <=> $1::vector
+    ${category ? 'AND category = $3' : ''}
+    ORDER BY embedding <=> $1::embedding
     LIMIT $2;
   `;
 
   try {
-    const result = await pool.query(query, [JSON.stringify(embedding), limit]);
+    const params = category 
+      ? [JSON.stringify(embedding), limit, category]
+      : [JSON.stringify(embedding), limit];
+    
+    const result = await pool.query(query, params);
     return result.rows;
   } catch (error) {
     console.error('Error querying embeddings:', error);
-    throw new Error('Failed to query similar documents');
+    throw new Error(`Failed to query similar documents from ${tableName}`);
   }
 }
 
@@ -51,5 +67,79 @@ export async function getEmbedding(text: string): Promise<number[]> {
   } catch (error) {
     console.error('Error generating embedding:', error);
     throw new Error('Failed to generate embedding');
+  }
+}
+
+export async function storeEmbedding(
+  text: string,
+  embedding: number[],
+  tableName: TableName,
+  category: string,
+  chunkIndex: number,
+  totalChunks: number
+) {
+  const query = `
+    INSERT INTO ${tableName} 
+    (category, chunk_text, chunk_index, total_chunks, embedding)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id;
+  `;
+
+  try {
+    const result = await pool.query(query, [
+      category,
+      text,
+      chunkIndex,
+      totalChunks,
+      JSON.stringify(embedding)
+    ]);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error('Error storing embedding:', error);
+    throw new Error(`Failed to store embedding in ${tableName}`);
+  }
+}
+
+export async function queryBothTables(
+  embedding: number[],
+  limit: number = 10,
+  category?: string
+) {
+  const query = `
+    (
+      SELECT 
+        id,
+        category,
+        chunk_text as text,
+        1 - (embedding <=> $1::embedding) as similarity,
+        'general' as data_type
+      FROM dhanush_general_data
+      ${category ? 'AND category = $3' : ''}
+    )
+    UNION ALL
+    (
+      SELECT 
+        id,
+        category,
+        chunk_text as text,
+        1 - (embedding <=> $1::embedding) as similarity,
+        'personal' as data_type
+      FROM dhanush_personal_data
+      ${category ? 'AND category = $3' : ''}
+    )
+    ORDER BY similarity DESC
+    LIMIT $2;
+  `;
+
+  try {
+    const params = category 
+      ? [JSON.stringify(embedding), limit, category]
+      : [JSON.stringify(embedding), limit];
+    
+    const result = await pool.query(query, params);
+    return result.rows;
+  } catch (error) {
+    console.error('Error querying both tables:', error);
+    throw new Error('Failed to query similar documents from both tables');
   }
 } 
