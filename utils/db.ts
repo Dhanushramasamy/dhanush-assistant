@@ -105,41 +105,34 @@ export async function queryBothTables(
   limit: number = 10,
   category?: string
 ) {
+  // Temporarily only search personal data table for testing
   const query = `
-    (
-      SELECT 
-        id,
-        category,
-        chunk_text as text,
-        1 - (embedding <=> $1::embedding) as similarity,
-        'general' as data_type
-      FROM dhanush_general_data
-      ${category ? 'AND category = $3' : ''}
-    )
-    UNION ALL
-    (
-      SELECT 
-        id,
-        category,
-        chunk_text as text,
-        1 - (embedding <=> $1::embedding) as similarity,
-        'personal' as data_type
-      FROM dhanush_personal_data
-      ${category ? 'AND category = $3' : ''}
-    )
+    SELECT 
+      id,
+      category,
+      chunk_text as text,
+      1 - (embedding <=> $1::vector) as similarity,
+      'personal' as data_type
+    FROM dhanush_personal_data
+    WHERE embedding IS NOT NULL
+    ${category ? 'AND category = $2::varchar' : ''}
     ORDER BY similarity DESC
-    LIMIT $2;
+    LIMIT ${category ? '$3' : '$2'}::integer;
   `;
 
   try {
+    const embeddingString = `[${embedding.join(',')}]`;
     const params = category 
-      ? [JSON.stringify(embedding), limit, category]
-      : [JSON.stringify(embedding), limit];
+      ? [embeddingString, category, limit]
+      : [embeddingString, limit];
+    
+    console.log('Query:', query);  // Debug log
+    console.log('Params:', params);  // Debug log
     
     const result = await pool.query(query, params);
     return result.rows;
   } catch (error) {
-    console.error('Error querying both tables:', error);
-    throw new Error('Failed to query similar documents from both tables');
+    console.error('Error querying personal data table:', error);
+    throw new Error('Failed to query similar documents from personal data table');
   }
 } 
