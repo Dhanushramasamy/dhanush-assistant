@@ -103,13 +103,13 @@ export default function Chat() {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Chat with Dhanush
-              </h1>
+              Chat with Dhanush
+            </h1>
               <p className="text-sm text-gray-400">Your AI Assistant</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
               <span className="text-sm text-gray-300 font-medium">Online</span>
             </div>
