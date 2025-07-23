@@ -2,6 +2,7 @@
 
 import { SignInButton, useUser } from "@clerk/nextjs";
 import UserProfile from "./UserProfile";
+import Image from "next/image";
 
 export default function Navbar() {
   const { isSignedIn, isLoaded } = useUser();
@@ -11,9 +12,14 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <span className="text-xl font-semibold text-gray-900 dark:text-white">
-              Dhanush Assistant
-            </span>
+            <div className="relative w-12 h-12 sm:w-18 sm:h-18">
+              <Image
+                src="/icon.png"
+                alt="Dhanush Assistant Icon"
+                fill
+                className="object-contain"
+              />
+            </div>
           </div>
           <div className="flex items-center">
             {!isLoaded ? (
